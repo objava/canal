@@ -38,7 +38,7 @@ public class CanalAdapterWorker extends AbstractCanalAdapterWorker {
         super(canalOuterAdapters);
         this.canalClientConfig = canalClientConfig;
         this.canalDestination = canalDestination;
-        connector = CanalConnectors.newSingleConnector(address, canalDestination, "", "");
+        connector = CanalConnectors.newSingleConnector(address, canalDestination, canalClientConfig.getUsername(), canalClientConfig.getPassword());
     }
 
     /**
