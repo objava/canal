@@ -517,7 +517,7 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
             } else {
                 throw new CanalParseException("unsupport event type :" + event.getHeader().getType());
             }
-
+            TableMapLogEvent table = event.getTable();
             RowChange.Builder rowChangeBuider = RowChange.newBuilder();
             rowChangeBuider.setTableId(event.getTableId());
             rowChangeBuider.setIsDdl(false);
@@ -542,17 +542,22 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
                     // update需要处理before/after
                     tableError |= parseOneRow(rowDataBuilder, event, buffer, columns, false, tableMeta);
                     if (!buffer.nextOneRow(changeColumns, true)) {
-                        rowChangeBuider.addRowDatas(rowDataBuilder.build());
+                        final RowData rowData = rowDataBuilder.build();
+                        if (!shouldIgnoreRow(table,rowData)) {
+                            rowChangeBuider.addRowDatas(rowData);
+                        }
                         break;
                     }
 
                     tableError |= parseOneRow(rowDataBuilder, event, buffer, changeColumns, true, tableMeta);
                 }
 
-                rowsCount++;
-                rowChangeBuider.addRowDatas(rowDataBuilder.build());
+                final RowData rowData = rowDataBuilder.build();
+                if (!shouldIgnoreRow(table,rowData)) {
+                    rowsCount++;
+                    rowChangeBuider.addRowDatas(rowData);
+                }
             }
-            TableMapLogEvent table = event.getTable();
             Header header = createHeader(event.getHeader(),
                 table.getDbName(),
                 table.getTableName(),
@@ -560,6 +565,9 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
                 rowsCount);
 
             RowChange rowChange = rowChangeBuider.build();
+            if (rowChange.getRowDatasList().isEmpty()) {
+                return null;
+            }
             if (tableError) {
                 Entry entry = createEntry(header, EntryType.ROWDATA, ByteString.EMPTY);
                 logger.warn("table parser error : {}storeValue: {}", entry.toString(), rowChange.toString());
@@ -571,6 +579,21 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
         } catch (Exception e) {
             throw new CanalParseException("parse row data failed.", e);
         }
+    }
+
+    /**
+     * 根据行数据，判断是否过滤该条记录。
+     *
+     * @return
+     */
+    private boolean shouldIgnoreRow(TableMapLogEvent table,RowData rowData) {
+        final String dbName = table.getDbName();
+        final String tableName = table.getTableName();
+        final List<Column> beforeColumnsList = rowData.getBeforeColumnsList();
+        for (Column column : beforeColumnsList) {
+
+        }
+        return false;
     }
 
     private EntryPosition createPosition(LogHeader logHeader) {
