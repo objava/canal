@@ -3,7 +3,7 @@ server:
 spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
+    time-zone: GMT%2B8
 
 spring.datasource:
   address: 127.0.0.1:3306
@@ -11,7 +11,7 @@ spring.datasource:
   username: canal
   password: canal
   driver-class-name: com.mysql.jdbc.Driver
-  url: jdbc:mysql://${spring.datasource.address}/${spring.datasource.database}?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+  url: jdbc:mysql://${spring.datasource.address}/${spring.datasource.database}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=GMT%2B8
   hikari:
     maximum-pool-size: 30
     minimum-idle: 1

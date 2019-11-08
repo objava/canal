@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -456,7 +457,38 @@ public class RdbSyncService {
             if (o != null && o.containsKey(srcColumnName)) {
                 BatchExecutor.setValue(values, type, o.get(srcColumnName));
             } else {
-                BatchExecutor.setValue(values, type, d.get(srcColumnName));
+                // 处理大小写不匹配的情况
+                boolean founded = false;
+                if (o != null) {
+                    for (Entry<String, Object> stringObjectEntry : o.entrySet()) {
+                        if (stringObjectEntry.getKey() == null) {
+                            continue;
+                        }
+                        if (stringObjectEntry.getKey().equalsIgnoreCase(srcColumnName)) {
+                            BatchExecutor.setValue(values, type,stringObjectEntry.getValue());
+                            founded = true;
+                            break;
+                        }
+                    }
+                }
+                if (!founded) {
+                    if (d != null) {
+                        if (d.containsKey(srcColumnName)) {
+                            BatchExecutor.setValue(values, type, d.get(srcColumnName));
+                            continue;
+                        }
+
+                        for (Entry<String, Object> stringObjectEntry : d.entrySet()) {
+                            if (stringObjectEntry.getKey() == null) {
+                                continue;
+                            }
+                            if (stringObjectEntry.getKey().equalsIgnoreCase(srcColumnName)) {
+                                BatchExecutor.setValue(values, type,stringObjectEntry.getValue());
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
         int len = sql.length();

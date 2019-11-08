@@ -1,5 +1,11 @@
 package com.alibaba.otter.canal.parse.inbound;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.otter.canal.parse.inbound.extension.FilterFactory;
+import com.alibaba.otter.canal.protocol.CanalEntry.RowData;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,6 +16,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.function.Predicate;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.math.RandomUtils;
@@ -60,7 +67,13 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
     protected Map<String, List<String>> 			fieldFilterMap;
     protected String		  			  			fieldBlackFilter;
     protected Map<String, List<String>> 			fieldBlackFilterMap;
-    
+
+    protected String filterRowStrategies;
+    /**
+     * 配置,示例如下 "trading_date:gt:2019-01-01" "ticker:in:REGGG001,REGGG002" "ticker:matched:REGGG\d{3}" "ticker:matched:REGGG\d{3}:and:trading_date:gt:2019-01-01"
+     */
+    protected Map<String, Predicate<RowData>> filterRowStrategiesMap;
+
     private CanalAlarmHandler                        alarmHandler               = null;
 
     // 统计参数
@@ -706,11 +719,34 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
 		this.fieldBlackFilterMap = parseFieldFilterMap(fieldBlackFilter);
 	}
 
-	/**
-	 * 获取表字段过滤规则
-	 * @return
-	 * 	key:	schema.tableName
-	 * 	value:	字段列表
+    public void setFilterRowStrategies(String filterRowStrategies) {
+        this.filterRowStrategies = filterRowStrategies;
+        this.filterRowStrategiesMap = parseFilterRowStrategiesMap(filterRowStrategies);
+
+    }
+
+    protected Map<String, Predicate<RowData>> parseFilterRowStrategiesMap(String filterRowStrategies) {
+        final JSONObject objects = JSON.parseObject(filterRowStrategies);
+        Map<String, Predicate<RowData>> map = Maps.newHashMap();
+        for (Map.Entry<String, Object> jsonObject : objects.entrySet()) {
+            map.put(jsonObject.getKey(), FilterFactory.createFilter(jsonObject.getValue().toString()));
+        }
+        return map;
+    }
+
+    public String getFilterRowStrategies() {
+        return filterRowStrategies;
+    }
+
+    public Map<String, Predicate<RowData>> getFilterRowStrategiesMap() {
+        return filterRowStrategiesMap;
+    }
+
+    /**
+     * 获取表字段过滤规则
+     * @return
+     *  key:	schema.tableName
+     * 	value:	字段列表
 	 */
 	public Map<String, List<String>> getFieldFilterMap() {
 		return fieldFilterMap;

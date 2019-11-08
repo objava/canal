@@ -1,0 +1,13 @@
+# For a quick start check out our HTTP Requests collection (Tools|HTTP Client|Open HTTP Requests Collection).
+#
+# Following HTTP Request Live Templates are available:
+# * 'gtrp' and 'gtr' create a GET request with or without query parameters;
+# * 'ptr' and 'ptrp' create a POST request with a simple or parameter-like body;
+# * 'mptr' and 'fptr' create a POST request to submit a form with a text or file field (multipart/form-data);
+
+GET http://{{admin_ip}}:{{admin_port}}/api/v1/config/instance_polling/local_server?md5=
+passwd: 4ACFE3202A5FF5CF467898FC58AAB1D615029441
+user: admin
+
+###
+
