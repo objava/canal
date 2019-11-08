@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.function.Predicate;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -90,6 +91,13 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
     private volatile AviaterRegexFilter nameBlackFilter;
     private Map<String, List<String>> 	fieldFilterMap 		= new HashMap<String, List<String>>();
     private Map<String, List<String>> 	fieldBlackFilterMap = new HashMap<String, List<String>>();
+
+    /**
+     * 行数据策略
+     * key: schema.tableName
+     * value: 过滤条件
+     */
+    private Map<String, Predicate<RowData>> 	filterRowStrategies = new HashMap<>();
 
     private TableMetaCache              tableMetaCache;
     private Charset                     charset             = Charset.defaultCharset();
@@ -591,7 +599,8 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
         final String tableName = table.getTableName();
         final List<Column> beforeColumnsList = rowData.getBeforeColumnsList();
         for (Column column : beforeColumnsList) {
-
+            column.getName();
+            column.getValue();
         }
         return false;
     }
@@ -1068,7 +1077,7 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
 		if (fieldBlackFilterMap != null) {
     		this.fieldBlackFilterMap = fieldBlackFilterMap;
     	} else {
-    		this.fieldBlackFilterMap = new HashMap<String, List<String>>();
+    		this.fieldBlackFilterMap = new HashMap<>();
     	}
 		
 		for (Map.Entry<String, List<String>> entry : this.fieldBlackFilterMap.entrySet()) {
