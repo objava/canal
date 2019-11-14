@@ -72,7 +72,7 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
     /**
      * 配置,示例如下 "trading_date:gt:2019-01-01" "ticker:in:REGGG001,REGGG002" "ticker:matched:REGGG\d{3}" "ticker:matched:REGGG\d{3}:and:trading_date:gt:2019-01-01"
      */
-    protected Map<String, Predicate<RowData>> filterRowStrategiesMap;
+    protected Map<String, Predicate<RowData>>  filterRowStrategiesMap;
 
     private CanalAlarmHandler                        alarmHandler               = null;
 
@@ -729,7 +729,7 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
         final JSONObject objects = JSON.parseObject(filterRowStrategies);
         Map<String, Predicate<RowData>> map = Maps.newHashMap();
         for (Map.Entry<String, Object> jsonObject : objects.entrySet()) {
-            map.put(jsonObject.getKey(), FilterFactory.createFilter(jsonObject.getValue().toString()));
+            map.put(jsonObject.getKey().toLowerCase(), FilterFactory.createFilter(jsonObject.getValue().toString()));
         }
         return map;
     }

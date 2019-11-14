@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class ValueInFilter implements Predicate<RowData> {
+public class ValueInFilter extends BaseFilter {
 
   private String field;
   private List<String> matchedValues = Lists.newArrayList();
@@ -24,5 +24,9 @@ public class ValueInFilter implements Predicate<RowData> {
       }
     }
     return true;
+  }
+
+  @Override public String toString() {
+    return "ValueInFilter{" + "field='" + field + '\'' + ", matchedValues=" + matchedValues + '}';
   }
 }

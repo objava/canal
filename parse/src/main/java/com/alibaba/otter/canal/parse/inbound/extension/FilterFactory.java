@@ -18,10 +18,15 @@ package com.alibaba.otter.canal.parse.inbound.extension;
 
 import com.alibaba.otter.canal.parse.inbound.extension.impl.GreaterEqualFilter;
 import com.alibaba.otter.canal.parse.inbound.extension.impl.GreaterThanFilter;
+import com.alibaba.otter.canal.parse.inbound.extension.impl.LessEqualFilter;
+import com.alibaba.otter.canal.parse.inbound.extension.impl.LessThanFilter;
 import com.alibaba.otter.canal.parse.inbound.extension.impl.ValueInFilter;
+import com.alibaba.otter.canal.parse.inbound.extension.impl.ValueLikeFilter;
+import com.alibaba.otter.canal.parse.inbound.extension.impl.ValueNotLikeFilter;
 import com.alibaba.otter.canal.protocol.CanalEntry.RowData;
 import com.google.common.base.Splitter;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -30,41 +35,70 @@ import java.util.function.Predicate;
  */
 public class FilterFactory {
 
-  /**
-   * @param config 配置字符串<br/> "trading_date:gt:2019-01-01"<br/> "ticker:in:REGGG001,REGGG002"<br/> "ticker:matched:REGGG\d{3}"<br/>
-   * "ticker:matched:REGGG\d{3}:and:trading_date:gt:2019-01-01"<br/>
-   * @return 过滤器
-   */
-  public static Predicate<RowData> createFilter(String config) {
-    if (config.contains(":and:")) {
-      final Splitter andSplitter = Splitter.on(":and:");
-      Predicate<RowData> result = null;
-      for (String c : andSplitter.split(config)) {
-        Predicate<RowData> rowData = createFilter(c);
-        if (result == null) {
-          result = rowData;
-        } else {
-          result = result.and(rowData);
+    /**
+     * @param config 配置字符串<br/> "trading_date:gt:2019-01-01"<br/> "ticker:in:REGGG001,REGGG002"<br/>
+     * "ticker:matched:REGGG\d{3}"<br/> "ticker:matched:REGGG\d{3}:and:trading_date:gt:2019-01-01"<br/>
+     * @return 过滤器
+     */
+    public static Predicate<RowData> createFilter(String config) {
+        if (config.contains(":or:")) {
+            final Splitter orSplitter = Splitter.on(":or:");
+            Predicate<RowData> result = null;
+            for (String c : orSplitter.split(config)) {
+                Predicate<RowData> rowData = createFilter(c);
+                if (result == null) {
+                    result = rowData;
+                } else {
+                    result = result.or(rowData);
+                }
+            }
+            return result;
         }
-      }
-      return result;
+        if (config.contains(":and:")) {
+            final Splitter andSplitter = Splitter.on(":and:");
+            Predicate<RowData> result = null;
+            for (String c : andSplitter.split(config)) {
+                Predicate<RowData> rowData = createFilter(c);
+                if (result == null) {
+                    result = rowData;
+                } else {
+                    result = result.and(rowData);
+                }
+            }
+            return result;
+        }
+        final Splitter splitter = Splitter.on(":");
+        final Splitter commaSplitter = Splitter.on(",");
+        final List<String> strings = splitter.splitToList(config);
+        if (strings.size() != 3) {
+            throw new IllegalArgumentException("配置格式错误，应为 trading_date:gt:2019-01-01，实际为:" + config);
+        }
+        final String op = strings.get(1);
+        switch (op) {
+            case "gt":
+                return new GreaterThanFilter(strings.get(0), strings.get(2));
+            case "ge":
+                return new GreaterEqualFilter(strings.get(0), strings.get(2));
+            case "lt":
+                return new LessThanFilter(strings.get(0), strings.get(2));
+            case "le":
+                return new LessEqualFilter(strings.get(0), strings.get(2));
+            case "in":
+            case "eq":
+                return new ValueInFilter(strings.get(0), commaSplitter.splitToList(strings.get(2)));
+            case "matches":
+                return new ValueLikeFilter(strings.get(0), commaSplitter.splitToList(strings.get(2)));
+            case "notmatches":
+                return new ValueNotLikeFilter(strings.get(0), commaSplitter.splitToList(strings.get(2)));
+            default:
+                throw new IllegalArgumentException("配置格式错误，应为 trading_date:gt:2019-01-01，实际为:" + config);
+        }
     }
-    final Splitter splitter = Splitter.on(":");
-    final Splitter commaSplitter = Splitter.on(",");
-    final List<String> strings = splitter.splitToList(config);
-    if (strings.size() != 3) {
-      throw new IllegalArgumentException("配置格式错误，应为 trading_date:gt:2019-01-01，实际为:" + config);
+
+    public static void main(String[] args) {
+        final Predicate<RowData> filter = createFilter(
+                "EXCHANGE_MARKET:eq:CNSE00,CNSESH,CNSESZ:and:security_type:eq:FDC,FDO");
+        System.out.println(filter);
+
     }
-    final String op = strings.get(1);
-    switch (op) {
-      case "gt":
-        return new GreaterThanFilter(strings.get(0), strings.get(2));
-      case "ge":
-        return new GreaterEqualFilter(strings.get(0), strings.get(2));
-      case "in":
-        return new ValueInFilter(strings.get(0), commaSplitter.splitToList(strings.get(2)));
-      default:
-        throw new IllegalArgumentException("配置格式错误，应为 trading_date:gt:2019-01-01，实际为:" + config);
-    }
-  }
 }

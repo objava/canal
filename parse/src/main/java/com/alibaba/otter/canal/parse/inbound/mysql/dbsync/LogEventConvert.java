@@ -63,7 +63,7 @@ import com.taobao.tddl.dbsync.binlog.event.mariadb.AnnotateRowsEvent;
 
 /**
  * 基于{@linkplain LogEvent}转化为Entry对象的处理
- * 
+ *
  * @author jianghang 2013-1-17 下午02:41:14
  * @version 1.0.0
  */
@@ -551,7 +551,7 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
                     tableError |= parseOneRow(rowDataBuilder, event, buffer, columns, false, tableMeta);
                     if (!buffer.nextOneRow(changeColumns, true)) {
                         final RowData rowData = rowDataBuilder.build();
-                        if (!shouldIgnoreRow(table,rowData)) {
+                        if (shouldAcceptRow(table, rowData)) {
                             rowChangeBuider.addRowDatas(rowData);
                         }
                         break;
@@ -561,7 +561,7 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
                 }
 
                 final RowData rowData = rowDataBuilder.build();
-                if (!shouldIgnoreRow(table,rowData)) {
+                if (shouldAcceptRow(table, rowData)) {
                     rowsCount++;
                     rowChangeBuider.addRowDatas(rowData);
                 }
@@ -592,17 +592,20 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
     /**
      * 根据行数据，判断是否过滤该条记录。
      *
-     * @return
+     * @return false if should accept row
      */
-    private boolean shouldIgnoreRow(TableMapLogEvent table,RowData rowData) {
+    private boolean shouldAcceptRow(TableMapLogEvent table, RowData rowData) {
+        if (filterRowStrategies == null || filterRowStrategies.isEmpty()) {
+            return true;
+        }
         final String dbName = table.getDbName();
         final String tableName = table.getTableName();
-        final List<Column> beforeColumnsList = rowData.getBeforeColumnsList();
-        for (Column column : beforeColumnsList) {
-            column.getName();
-            column.getValue();
+        for (Map.Entry<String, Predicate<RowData>> stringPredicateEntry : filterRowStrategies.entrySet()) {
+            if ((dbName + "." + tableName).matches(stringPredicateEntry.getKey())) {
+                return stringPredicateEntry.getValue().test(rowData);
+            }
         }
-        return false;
+        return true;
     }
 
     private EntryPosition createPosition(LogHeader logHeader) {
@@ -623,12 +626,12 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
         //获取字段过滤条件
         List<String> fieldList = null;
         List<String> blackFieldList = null;
-        
+
         if (tableMeta != null) {
         	fieldList = fieldFilterMap.get(tableMeta.getFullName().toUpperCase());
         	blackFieldList = fieldBlackFilterMap.get(tableMeta.getFullName().toUpperCase());
         }
-        
+
         if (tableMeta != null && columnInfo.length > tableMeta.getFields().size()) {
             if (tableMetaCache.isOnRDS()) {
                 // 特殊处理下RDS的场景
@@ -1007,7 +1010,7 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
     private boolean isRDSHeartBeat(String schema, String table) {
         return "mysql".equalsIgnoreCase(schema) && "ha_health_check".equalsIgnoreCase(table);
     }
-    
+
     /**
      * 字段过滤判断
      */
@@ -1059,31 +1062,43 @@ public class LogEventConvert extends AbstractCanalLifeCycle implements BinlogPar
         this.nameBlackFilter = nameBlackFilter;
         logger.warn("--> init table black filter : " + nameBlackFilter.toString());
     }
-    
+
     public void setFieldFilterMap(Map<String, List<String>> fieldFilterMap) {
     	if (fieldFilterMap != null) {
     		this.fieldFilterMap = fieldFilterMap;
     	} else {
     		this.fieldFilterMap = new HashMap<String, List<String>>();
     	}
-		
-		
+
+
 		for (Map.Entry<String, List<String>> entry : this.fieldFilterMap.entrySet()) {
 			logger.warn("--> init field filter : " + entry.getKey() + "->" + entry.getValue());
 		}
 	}
-    
+
     public void setFieldBlackFilterMap(Map<String, List<String>> fieldBlackFilterMap) {
 		if (fieldBlackFilterMap != null) {
     		this.fieldBlackFilterMap = fieldBlackFilterMap;
     	} else {
     		this.fieldBlackFilterMap = new HashMap<>();
     	}
-		
+
 		for (Map.Entry<String, List<String>> entry : this.fieldBlackFilterMap.entrySet()) {
 			logger.warn("--> init field black filter : " + entry.getKey() + "->" + entry.getValue());
 		}
 	}
+
+    public void setFilterRowStrategies(Map<String, Predicate<RowData>> filterRowStrategies) {
+        if (filterRowStrategies != null) {
+            this.filterRowStrategies = filterRowStrategies;
+        } else {
+            this.filterRowStrategies = new HashMap<>();
+        }
+
+        for (Map.Entry<String, Predicate<RowData>> entry : this.filterRowStrategies.entrySet()) {
+            logger.warn("--> init filterRowStrategies : " + entry.getKey() + "->" + entry.getValue());
+        }
+    }
 
     public void setTableMetaCache(TableMetaCache tableMetaCache) {
         this.tableMetaCache = tableMetaCache;

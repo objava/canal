@@ -1,0 +1,48 @@
+{
+  "properties": [
+    {
+      "name": "jdbc.user",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.user."
+    },
+    {
+      "name": "jdbc.ip",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.ip."
+    },
+    {
+      "name": "jdbc.port",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.ip."
+    },
+    {
+      "name": "jdbc.password",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.ip."
+    },
+    {
+      "name": "jdbc.basedb",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.basedb."
+    },
+    {
+      "name": "jdbc.derivatedb",
+      "type": "java.lang.String",
+      "description": "Description for jdbc.basedb."
+    },
+    {
+      "name": "src_basedb",
+      "type": "java.lang.String",
+      "description": "Description for src_basedb."
+    },
+    {
+      "name": "instance_name",
+      "type": "java.lang.String",
+      "description": "Description for instance_name."
+    },
+    {
+      "name": "src_derivatedb",
+      "type": "java.lang.String",
+      "description": "Description for src_derivatedb."
+    }
+  ] }

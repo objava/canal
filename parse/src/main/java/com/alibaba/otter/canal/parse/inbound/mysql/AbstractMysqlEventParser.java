@@ -1,6 +1,7 @@
 package com.alibaba.otter.canal.parse.inbound.mysql;
 
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.otter.canal.filter.CanalEventFilter;
@@ -53,6 +54,7 @@ public abstract class AbstractMysqlEventParser extends AbstractEventParser {
         
         convert.setFieldFilterMap(getFieldFilterMap());
         convert.setFieldBlackFilterMap(getFieldBlackFilterMap());
+        convert.setFilterRowStrategies(getFilterRowStrategiesMap());
 
         convert.setCharset(connectionCharset);
         convert.setFilterQueryDcl(filterQueryDcl);
@@ -119,6 +121,15 @@ public abstract class AbstractMysqlEventParser extends AbstractEventParser {
 
         if (tableMetaTSDB != null && tableMetaTSDB instanceof DatabaseTableMeta) {
             ((DatabaseTableMeta) tableMetaTSDB).setFieldBlackFilterMap(getFieldBlackFilterMap());
+        }
+    }
+
+    @Override
+    public void setFilterRowStrategies(String filterRowStrategies) {
+        super.setFilterRowStrategies(filterRowStrategies);
+        // 触发一下filter变更
+        if (binlogParser instanceof LogEventConvert) {
+            ((LogEventConvert) binlogParser).setFilterRowStrategies(getFilterRowStrategiesMap());
         }
     }
 
